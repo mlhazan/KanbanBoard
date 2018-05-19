@@ -19,7 +19,8 @@ class Card extends Component {
                 <div class="card__details">
                     {/* {marked(this.props.description)} */}
                     <span dangerouslySetInnerHTML={{__html:marked(this.props.description)}} />
-                    <CheckList cardId={this.props.id} tasks={this.props.tasks} />
+                    <CheckList cardId={this.props.id} tasks={this.props.tasks} 
+                    taskCallBacks={this.props.taskCallBacks} />
                 </div>
             )
         }

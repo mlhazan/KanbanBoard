@@ -16,6 +16,7 @@
     "babel-preset-stage-0": "^6.3.13",
     "marked": "^0.3.19",
     "react": "^0.14.6",
+    "react-addons-update": "^15.6.2",
     "react-dom": "^0.14.6",
     "react-router": "^1.0.3",
     "webpack": "^1.12.9",
