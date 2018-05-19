@@ -21,8 +21,8 @@ class KanbanBoardContainer extends Component {
          fetch(API_URL + '/cards',{headers:API_HEADERS})
         //fetch(API_URL+'/cards',{headers:API_HEADERS})
             .then((response) =>response.json())
-            .then((responseDate) =>{
-                this.setState({cards:responseDate});
+            .then((responseData) =>{
+                this.setState({cards:responseData});
             })
             .catch((error) =>{
                 console.log('Error fetching and parsing data', error);
@@ -31,6 +31,9 @@ class KanbanBoardContainer extends Component {
 
     
     addTask(cardId, taskName){
+        // Keep a reference to the original state prior to the mutations 
+        // in case you need to revert the optimistic changes in the UI
+        let prevState = this.state;
         // Find the index of the card
         let cardIndex = this.state.cards.findIndex((card)=>card.id == cardId);
         // Create a new task with the given name and a temporary ID 
@@ -44,21 +47,33 @@ class KanbanBoardContainer extends Component {
         this.setState({cards:nextState});
         // Call the API to add the task on the server
         fetch(`${API_URL}/cards/${cardId}/tasks`, {
-        method: 'post',
-        headers: API_HEADERS,
-        body: JSON.stringify(newTask)
+            method: 'post',
+            headers: API_HEADERS,
+            body: JSON.stringify(newTask)
         })
-        .then((response) => response.json())
+        .then((response) => {
+            if(response.ok){
+                return response.json()
+        }else 
+            //Throw an error and revert back
+            throw new Error("Server response wasn't ok")
+        })
         .then((responseData) => {
-        // When the server returns the definitive ID
-        // used for the new Task on the server, update it on React 
-        newTask.id=responseData.id 
-        this.setState({cards:nextState});
-}); }
-
-    
+            // When the server returns the definitive ID
+            // used for the new Task on the server, update it on React 
+            newTask.id=responseData.id;
+            this.setState({cards:nextState});
+        })
+        .catch((error) =>{
+            console.log("Fetch Error", error);
+            this.setState(prevState);
+        });
+    }
+        
+   
 
 deleteTask(cardId, taskId, taskIndex){
+    let prevState = this.state;
     // Find the index of the card
     let cardIndex = this.state.cards.findIndex((card)=>card.id == cardId);
     // Create a new object without the task 
@@ -68,11 +83,19 @@ deleteTask(cardId, taskId, taskIndex){
     } });
     // set the component state to the mutated object 
     this.setState({cards:nextState});
-// Call the API to remove the task on the server
-fetch(`${API_URL}/cards/${cardId}/tasks/${taskId}`, {
-    method: 'delete',
-    headers: API_HEADERS
-  });
+    // Call the API to remove the task on the server
+    fetch(`${API_URL}/cards/${cardId}/tasks/${taskId}`, {
+        method: 'delete',
+        headers: API_HEADERS
+    }).then((response)=>{
+        if(!response.ok){
+            throw new Error("Server error ");
+        }
+    })
+    .catch((error)=>{
+        console.log("Fetch Error", error);
+        this.setState(prevState);
+    })
   }
 
     toggleTask(cardId, taskId, taskIndex){
@@ -82,23 +105,35 @@ fetch(`${API_URL}/cards/${cardId}/tasks/${taskId}`, {
         let newDoneValue;
         // Using the $apply command, you will change the done value to its opposite 
         let nextState = update(this.state.cards, {
-                                    [cardIndex]: {
-                                      tasks: {
-                                        [taskIndex]: {
-                                          done: { $apply: (done) => {
-                                              newDoneValue = !done
-        return newDoneValue; }
-        } }
-        } }
-                                 });
+                                        [cardIndex]: {
+                                            tasks: {
+                                                [taskIndex]: {
+                                                    done: { $apply: (done) => {
+                                                        newDoneValue = !done
+                                                        return newDoneValue; 
+                                                    }
+                                                } 
+                                            }
+                                        } 
+                                    }
+                                });
             // set the component state to the mutated object
         this.setState({cards:nextState});
             // Call the API to toggle the task on the server
             fetch(`${API_URL}/cards/${cardId}/tasks/${taskId}`, {
-                method: 'put',
-                headers: API_HEADERS,
-                body: JSON.stringify({done:newDoneValue})
-        }); }
+                    method: 'put',
+                    headers: API_HEADERS,
+                    body: JSON.stringify({done:newDoneValue})
+                    }
+                ).then((response)=>{
+                    if(!response.ok){
+                        throw new Error("Server response not OK");
+                    }
+                }).catch((error)=>{
+                    console.log("Fetch Error", error);
+                    this.setState(prevState);
+                });                 
+            }
     render(){
         return <KanbanBoard cards = {this.state.cards}
                             taskCallBacks = {{
