@@ -1,31 +1,46 @@
-var debug = process.env.NODE_ENV !== "production";
 var webpack = require('webpack');
-var path = require('path');
 
-module.exports = {
-  context: path.join(__dirname),
-  devtool: debug ? "inline-sourcemap" : false,
-  entry: "./src/components/App.jsx",
-  module: {
-    loaders: [
-      {
-        test: /\.jsx?$/,
-        exclude: /(node_modules|bower_components)/,
-        loader: 'babel-loader',
-        query: {
-          presets: ['react', 'es2015', 'stage-0'],
-          plugins: ['react-html-attrs', 'transform-decorators-legacy', 'transform-class-properties'],
-        }
-      }
-    ]
-  },
+/*
+ * Default webpack configuration for development
+ */
+var config = {
+  devtool: 'eval-source-map',
+  entry:  __dirname + "/app/App.js",
   output: {
-    path: __dirname,
-    filename: "app/js/main.js"
+    path: __dirname + "/public",
+    filename: "bundle.js"
   },
-  plugins: debug ? [] : [
-    new webpack.optimize.DedupePlugin(),
-    new webpack.optimize.OccurrenceOrderPlugin(),
-    new webpack.optimize.UglifyJsPlugin({ mangle: false, sourcemap: false }),
-  ],
+  module: {
+    loaders: [{
+      test: /\.jsx?$/,
+      exclude: /node_modules/,
+      loader: 'babel',
+      query: {
+        presets: ['es2015','react'],
+        plugins: ['react-html-attrs', 'transform-decorators-legacy', 'transform-class-properties'],
+      }
+    }]
+  },
+  devServer: {
+    contentBase: "./public",
+    colors: true,
+    historyApiFallback: true,
+    inline: true
+  },
+}
+
+/*
+ * If bundling for production, optimize output
+ */
+if (process.env.NODE_ENV === 'production') {
+  config.devtool = false;
+  config.plugins = [
+    new webpack.optimize.OccurenceOrderPlugin(),
+    new webpack.optimize.UglifyJsPlugin({comments: false}),
+    new webpack.DefinePlugin({
+      'process.env': {NODE_ENV: JSON.stringify('production')}
+    })
+  ];
 };
+
+module.exports = config;

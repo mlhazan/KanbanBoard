@@ -1,5 +1,5 @@
 import React, { Component} from 'react';
-import Card from './Card.jsx';
+import Card from './Card';
 import { DropTarget } from 'react-dnd';
 import constants from './constants';
 
